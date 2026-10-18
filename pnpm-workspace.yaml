@@ -1,0 +1,7 @@
+nodeLinker: hoisted
+symlink: false
+packageImportMethod: copy
+verifyDepsBeforeRun: false
+ignoredBuiltDependencies:
+  - core-js
+  - esbuild

@@ -1,7 +1,6 @@
 'use client';
 
 import './globals.css';
-import Link from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import {
