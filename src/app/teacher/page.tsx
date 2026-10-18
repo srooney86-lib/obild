@@ -24,6 +24,7 @@ import { PISA_CONTENT_TYPE_LABELS } from '@/lib/ontology/mappings';
 import { useLessonPlanStore } from '@/stores/lessonPlanStore';
 import { useAuthStore } from '@/stores/authStore';
 import { exportLessonPlanToPdf, printLessonPlan } from '@/lib/export/pdf';
+import { generateReadingMaterial, generateGagneStepDraft } from '@/lib/llm/generator';
 import {
   BookOpen,
   CheckCircle2,
@@ -107,37 +108,29 @@ export default function TeacherPortalPage() {
       const topic = store.selectedElements.map((e) => e.label).join(', ');
       const coreIdea = store.selectedArea?.coreIdeas?.[0]?.description || '사회 현상의 이해와 탐구';
 
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'readingMaterial',
-          topic,
-          coreIdea,
-          grade: store.targetGrade,
-          minLen: store.minLen,
-          maxLen: store.maxLen,
-          format: store.selectedFormat,
-          contentType: store.selectedContentType,
-        }),
+      const data = await generateReadingMaterial({
+        topic,
+        coreIdea,
+        grade: store.targetGrade,
+        minLen: store.minLen,
+        maxLen: store.maxLen,
+        format: store.selectedFormat,
+        contentType: store.selectedContentType,
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        store.setReadingMaterial({
-          title: data.title,
-          body: data.body,
-          grade: store.targetGrade,
-          textType: {
-            source: 'SingleText',
-            structure: 'StaticText',
-            format: store.selectedFormat,
-            content: store.selectedContentType,
-          },
-          generatedBy: data.generatedBy,
-          generatedAt: data.generatedAt,
-        });
-      }
+      store.setReadingMaterial({
+        title: data.title,
+        body: data.body,
+        grade: store.targetGrade,
+        textType: {
+          source: 'SingleText',
+          structure: 'StaticText',
+          format: store.selectedFormat,
+          content: store.selectedContentType,
+        },
+        generatedBy: data.generatedBy,
+        generatedAt: data.generatedAt,
+      });
     } catch (e) {
       console.error('자료 생성 실패:', e);
     } finally {
@@ -189,21 +182,8 @@ export default function TeacherPortalPage() {
     const strategy = store.selectedStrategies[0]?.label || '독서전략';
 
     try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'gagneDraft',
-          seq,
-          label,
-          topic,
-          strategy,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        store.updateGagneEvent(seq, 'description', data.draft);
-      }
+      const draft = generateGagneStepDraft(seq, label, topic, strategy);
+      store.updateGagneEvent(seq, 'description', draft);
     } catch (e) {
       console.error('사태 초안 생성 실패:', e);
     }
